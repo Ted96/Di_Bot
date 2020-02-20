@@ -1,13 +1,10 @@
-from TextApp import TextAppDiscord
-
-
 def dostuff():
     pass
 
 
 def main():
     # initialize everything
-    # df_nlu = ChatbotService('wtfdoitypehere')
+    # df_nlu = NluService('wtfdoitypehere')
     intent = "Course-Grade"
     value = "Physics"
     # An rwthsei gia to faq
@@ -54,7 +51,7 @@ if __name__ == '__main__':
     main()
 
     # message = 	dc.message
-    # intent = 	df.ask( message )
+    # intent = 	df.get_intent( message )
     # answer = 	formulate_answer( intent )
     # dc.sendbackto( author , answer)
     #

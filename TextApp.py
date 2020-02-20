@@ -2,7 +2,7 @@ import asyncio
 
 import discord
 
-import ChatbotService as df
+import NluService as df
 from other import keys_and_strings
 
 
@@ -11,24 +11,22 @@ class TextApp:
 	available_modes = ['Echo', 'AI']
 	mode: int
 
-	def __init__(self, default_mode=0):
+	def __init__(self, default_mode=1):
 		print("> Starting Discord")
 		self.bot_token = keys_and_strings.DC_BOT_TOKEN
 		self.client = discord.Client()
 		self.mode = default_mode
 
 		# todo : remove
-		self.ai_service = df.ChatbotService('MyDiBot')
+		self.ai_service = df.NluService('MyDiBot')
 
 		for guild in self.client.guilds:
 			print(guild.name)
 
-		@asyncio.coroutine
 		@self.client.event
 		async def on_ready():
 			print('We have logged in as {0.user}'.format(self.client))
 
-		@asyncio.coroutine
 		@self.client.event
 		async def on_message(message: discord.message):
 
@@ -36,40 +34,33 @@ class TextApp:
 			if message.author == self.client.user:
 				return
 
-			# This message came from other user, and its fom me
-			if message.content.startswith(';'):
+			# This message came from other user, and its for me
+			# if message.content.startswith(';'):
 
-				text = message.content[1:]
+			text = message.content[:]
+			curr_channel: discord.channel.DMChannel = message.channel
+			# sender : discord.message. = message.author
 
-				if text == 'mention':
-					# curr_user = message.author.get
+			if text == 'mode':
+				# goto next mode
+				self.mode = (self.mode + 1) % len(self.available_modes)
+				await curr_channel.send(':warning:  Mode --> ' + self.available_modes[self.mode] + ' :warning:')
+				return
 
-					# await self.client.
-					curr_channel: discord.channel.DMChannel = message.channel
-					# u : discord.user.User = message.author
-					await curr_channel.send(message.author.mention)
-					return
+			if self.mode == 0:				# echo back mode
+				await curr_channel.send('Echo= `' + text + '`')
+				return
 
-				if text == 'mode':
-					# goto next mode
-					self.mode = (self.mode + 1) % len(self.available_modes)
+			if self.mode == 1:
+				# dialogflow mode  //todo REMOVE dialogflow class from this file
+				answer: str = self.ai_service.get_intent(text)
 
-					await message.channel.send(':warning:  Mode --> ' + self.available_modes[self.mode] + ' :warning:')
-					return
+				# switch here ()
 
-				if self.mode == 0:
-					# echo back mode
-					await message.channel.send('Echo= `' + text + '`')
-					return
+				await curr_channel.send('AI= `<' + answer + '>`')
+				return
 
-				if self.mode == 1:
-					# dialogflow mode  //todo REMOVE dialogflow class from this file
-					answer: str = self.ai_service.ask(text)
-					await message.channel.send('AI= `' + answer + '`')
-					return
-
-				# sender : discord.message. = message.author
-				print('::', message.author.name)
+			print('((', message.author.name, '))')
 
 	def run(self):
 
@@ -95,5 +86,4 @@ class TextApp:
 if __name__ == "__main__":
 	d = TextApp(0)
 	d.run()
-
 	exit()
