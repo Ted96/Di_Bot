@@ -7,24 +7,25 @@ from other import keys_and_strings
 
 class NluService:
 
-	def __init__(self, name: str = 'dibot_dialogflowNLUservice'):
+	def __init__(self, session_id: str = 'dibot_dialogflowNLUservice_generic'):
 
 		# Authenticate this program
 		os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = keys_and_strings.PATH_TO_GOOGLE_JSON
 
 		self.session_client : dialogflow.SessionsClient = dialogflow.SessionsClient()
-		self.session_name : str = name
+		self.session_name : str = session_id
 
 		print('> Starting DFlow  //session=', self.session_name)
 
-	def get_intent(self, question: str):
-		# get intent for question
 
+	def get_intent(self, question: str) -> tuple :
+		# get intent for question
 		# remove from here?  :
 		current_session = self.session_client.session_path(keys_and_strings.PROJECT_ID, self.session_name)
 
 		text_input = dialogflow.types.TextInput(text=question, language_code='en-US')
 		query = dialogflow.types.QueryInput(text=text_input)
+
 		response = self.session_client.detect_intent(session=current_session, query_input=query)
 
 		############ debug ##################
@@ -35,7 +36,11 @@ class NluService:
 			response.query_result.intent_detection_confidence * 100))
 		#####################################
 
-		return response.query_result.intent.display_name
+		parameter : str = ''
+		if bool(response.query_result.parameters):
+			parameter = response.query_result.parameters.items()[0][1]
+
+		return response.query_result.intent.display_name, parameter
 
 
 if __name__ == "__main__":

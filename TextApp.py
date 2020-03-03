@@ -1,27 +1,108 @@
 import asyncio
+from concurrent.futures.thread import ThreadPoolExecutor
 
 import discord
 
-import NluService as df
+import NluService as dialogflow
+import WebParser
+from Request import Request
 from other import keys_and_strings
+
+# Initialize the Thread_Pool that handles the requests
+threads_executor = ThreadPoolExecutor(50)
+
+
+def handle_request(req: Request):
+	# global inited
+	# global nlu
+
+	req.print()
+
+	# ----------------------- 1 ----------------------------
+	# get intent from NLU
+	nlu = dialogflow.NluService('session_user__#' + req.sender_id)
+	req.intent, req.parameter = nlu.get_intent(req.question)
+
+	# ----------------------- 2 ----------------------------
+	# get data, depending on intent
+	req.answer = action_switcher(req.intent, req.parameter)
+
+	# ----------------------- 3 ----------------------------
+	# return answer, send it back to user
+	return '==' + req.answer
+
+
+def action_switcher(intent: str, parameter: str):
+	global index
+	global myd
+
+	# print('\taction_switcher()')
+	# An rwthsei gia to faq
+	if intent == "faq":
+		# input: None
+		# Fere  tis erwthseis h tis apanthseis me vash to faq
+		# output: The Questions And The Answers
+		pass
+
+	# alliws an rwthsei kapoion va8mo se kapoio ma8hma
+	elif intent == "mystudies-grade":
+
+		# input: Course (i.e: Psychics)
+		# Kane login sto my-studies kai fere ton va8mo gia ayto to ma8hma
+		# output: Course Grade
+		return '*grade*'
+
+	elif intent == "mystudies-grade-avg":
+		# input: Course (i.e: Psychics)
+		# Kane login sto my-studies kai fere ton va8mo gia ayto to ma8hma
+		# output: Course Grade
+
+		# wb = SeleniumWebParser()
+		# # thr = threading.Thread( target=wb.get_average_grades)
+		#
+		# ans = wb.get_average_grades()
+		#
+		# t = threading.Thread(name='mythread__'+str(index), target=test, args=(myd, req))
+		# t.start()
+		# index = index + 1
+		# pos = t.getName()[-1]
+		#	t.join()
+		ans = WebParser.test()
+		print('exit from func, res = ', ans)
+
+		return '*gpa*='
+
+	elif intent == "mystudies-courses_declaration":
+		# input: None
+		# Kane login sto my-studies kai fere tis dhlwseis gia to trexon e3amhno
+		# output: Course Declarations
+		pass
+
+	elif intent == "eclass-announcements":
+		# input: None
+		# Kane login sto eclass kai fere ta anoucements gia ola, h ena ma8hma
+		# output: Top 5 most recent announcements?
+		pass
+
+	elif intent == "eclass-deadline":
+		# input: Course
+		# Kane login sto eclass kai fere to deadline gia tis ergasies enos ma8hmatos
+		# output: Course Deadline
+		pass
+
+	elif intent == "test__name":
+		return '*test__name*'
+
+	return '|!|not-found-intent|!|)'
 
 
 class TextApp:
-	# 0 = echo     1 = dialogflow
-	available_modes = ['Echo', 'AI']
-	mode: int
 
-	def __init__(self, default_mode=1):
+	def __init__(self):
 		print("> Starting Discord")
 		self.bot_token = keys_and_strings.DC_BOT_TOKEN
 		self.client = discord.Client()
-		self.mode = default_mode
-
-		# todo : remove
-		self.ai_service = df.NluService('MyDiBot')
-
-		for guild in self.client.guilds:
-			print(guild.name)
+		self.threads_executor = ThreadPoolExecutor(max_workers=50)
 
 		@self.client.event
 		async def on_ready():
@@ -30,60 +111,23 @@ class TextApp:
 		@self.client.event
 		async def on_message(message: discord.message):
 
-			# This message came from this bot
-			if message.author == self.client.user:
+			# This message came from this bot// continue
+			if message.author == self.client.user or message == '' :
 				return
 
-			# This message came from other user, and its for me
-			# if message.content.startswith(';'):
+			req = Request(message.author.name, message.channel, message.content[:])
 
-			text = message.content[:]
-			curr_channel: discord.channel.DMChannel = message.channel
-			# sender : discord.message. = message.author
+			res = await asyncio.get_event_loop().run_in_executor(threads_executor, handle_request, req)
 
-			if text == 'mode':
-				# goto next mode
-				self.mode = (self.mode + 1) % len(self.available_modes)
-				await curr_channel.send(':warning:  Mode --> ' + self.available_modes[self.mode] + ' :warning:')
-				return
+			await message.channel.send(res)
 
-			if self.mode == 0:				# echo back mode
-				await curr_channel.send('Echo= `' + text + '`')
-				return
-
-			if self.mode == 1:
-				# dialogflow mode  //todo REMOVE dialogflow class from this file
-				answer: str = self.ai_service.get_intent(text)
-
-				# switch here ()
-
-				await curr_channel.send('AI= `<' + answer + '>`')
-				return
-
-			print('((', message.author.name, '))')
+			return
 
 	def run(self):
-
-		# self.client.run(self.bot_token)
-
-		loop = asyncio.get_event_loop()
-		try:
-			a = loop.run_until_complete(self.client.start(self.bot_token))
-			print(a)
-		except KeyboardInterrupt:
-			loop.run_until_complete(self.client.logout())
-		# cancel all tasks lingering
-		finally:
-			loop.close()
-
-	def __exit__(self, exc_type, exc_val, exc_tb):
-		print('????? exiting ???????')
-
-	def __del__(self):
-		print('????? deleting ???????')
+		self.client.run(self.bot_token)
 
 
 if __name__ == "__main__":
-	d = TextApp(0)
+
+	d = TextApp()
 	d.run()
-	exit()
