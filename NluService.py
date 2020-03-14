@@ -20,7 +20,6 @@ class NluService:
 
 	def get_intent(self, question: str) -> tuple :
 		# get intent for question
-		# remove from here?  :
 		current_session = self.session_client.session_path(keys_and_strings.PROJECT_ID, self.session_name)
 
 		text_input = dialogflow.types.TextInput(text=question, language_code='en-US')

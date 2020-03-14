@@ -16,6 +16,19 @@ def test() -> str :
 	return answer
 
 
+def convert_to_cap_greek( s : str ) -> str:
+
+	dict_accented_caps = { 'Ό' : 'Ο', 'Ά' : 'Α', 'Ί' : 'Ι', 'Έ' : 'Ε', 'Ύ' : 'Υ', 'Ή' : 'Η', 'Ώ' : 'Ω'}
+
+	res = s.upper()
+
+	for orig, new in dict_accented_caps.items():
+		print(orig, new)
+		res = res.replace(orig , new)
+
+	return res
+
+
 class SeleniumWebParser:
 
 	def __init__(self):
@@ -54,7 +67,6 @@ class SeleniumWebParser:
 		password_field.send_keys(val_pass)
 		password_field.send_keys(Keys.RETURN)
 
-
 	def get_average_grades(self) -> str:
 		# mystudies : get average grade
 
@@ -88,22 +100,22 @@ class SeleniumWebParser:
 			if grade < 5:
 				continue
 
-			print("\t__WB__ //mystudies: ", course, '\t= ', grade)
-
 			sum_grades = sum_grades + grade
 			counter = counter + 1
+
+			print("\t__WB__ //mystudies: ", course, '\t= ', grade)
 
 		self.driver.close()
 		# this takes alot of time :: self.driver.quit()
 
-		return str((sum_grades / counter).__round__(2))
+		return str( (sum_grades / counter).__round__(2) if counter != 0 else 0)
 
-	def get_grade_of(self, course_name: str = '') -> str:
+	def get_grade_of(self, param_target_course: str = '') -> str:
 
 		self.login_website(1)
 
 		# mystudies : get grade
-		grade: str = '0'
+		grade: str = ''
 
 		self.driver.get('https://my-studies.uoa.gr/Secr3w/app/accHistory/default.aspx')
 		self.driver.switch_to.frame('accmain')
@@ -118,16 +130,16 @@ class SeleniumWebParser:
 			course: str = td_columns[0]
 			course = course[course.find('- ') + 2:  course.rfind('(')]
 
-			# string compare -->  check if course ==  {:course_name}
-			if course_name.upper() in course:
+			# string compare -->  check if this course ==  {:param_target_course}
+			if param_target_course.upper() in convert_to_cap_greek(course):
 				grade = td_columns[1]
 				grade = grade[grade.find('(') + 1:   grade.find(')')]
-				print("\t__WB__ //mystudies  found : ", course_name, '\t= ', grade)
+				print("\t__WB__ //mystudies  found : ", param_target_course, '\t= ', grade)
 				break
 
 		return grade
 
-	def get_element(self, course_name: str = '') -> str:
+	def get_eclass_element(self, type_element, param_target_course: str = '') -> str:
 
 		self.login_website(2)
 
@@ -137,15 +149,15 @@ class SeleniumWebParser:
 		webelem_courses = self.driver.find_elements_by_xpath('//table/tbody/tr/td/b/a')
 		# #webelem_courses = self.driver.find_elements_by_class_name('text-left')
 
-		#  string compare --> click on the course with name = [ most similar to the string parameter {:course_name}  ]
+		#  (string comparison) click on the course with name == [ most similar to the string parameter {:param_target_course}  ]
 		# https://www.datacamp.com/community/tutorials/fuzzy-string-python
 		for c in webelem_courses:
-			if c.text == course_name:
+			if param_target_course.upper() in convert_to_cap_greek(c.text):
 				c.click()
 
 		w_side_categories = self.driver.find_elements_by_class_name('list-group-item')
 		# indexes :::       0=anakoinwseis   1=ergasies   2=ergasies      5=plhrofories
-		w_side_categories[0].click()
+		w_side_categories[type_element].click()
 
 		return 'gg'
 
@@ -154,5 +166,6 @@ if __name__ == "__main__":
 
 	wb = SeleniumWebParser()
 
+	wb.get_eclass_element( 0 , 'ΕΙΣΑΓΩΓΗ ΣΤΟΝ ΠΡΟΓΡΑΜΜΑΤΙΣΜΟ' )
 	print("\n\n", wb.get_average_grades(), "/10")   # ok
 # print(wb.get_grade_of('Εισαγωγη στον Προγραμματισμο')) # ok  <greeklish
