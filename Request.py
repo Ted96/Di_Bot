@@ -4,7 +4,8 @@ import WebParser
 
 class Request:
 
-	def __init__(self, sender_id : str, message_channel, question: str, intent: str = '', parameter: str = '', answer: str = ''):
+	def __init__(self, sender_id: str, message_channel, question: str, intent: str = '', parameter: str = '',
+				 answer: str = ''):
 		self.sender_id = sender_id
 		self.message_channel = message_channel
 		self.question = question
@@ -14,8 +15,7 @@ class Request:
 
 	def print(self):
 		print(" --------- Req ---------\n\tfrom=\t", self.sender_id, '\n\t??? =\t', self.question, "\n\tnlu =\t",
-			self.intent + ' /', self.parameter, '\n\tans =\t', self.answer, '\n- - - - - - - - - - - - -', sep='')
-
+			  self.intent + ' /', self.parameter, '\n\tans =\t', self.answer, '\n- - - - - - - - - - - - -', sep='')
 
 
 def handle_request(req: Request):
@@ -27,7 +27,7 @@ def handle_request(req: Request):
 	# ----------------------- 1 ----------------------------
 	# get intent from NLU
 	nlu = dialogflow.NluService('session_user__#' + req.sender_id)
-	req.intent, req.parameter = nlu.get_intent(req.question)
+	req.intent, req.parameter = nlu.get_intent(req.question , req.sender_id)
 
 	# ----------------------- 2 ----------------------------
 	# get data, depending on intent
@@ -35,7 +35,7 @@ def handle_request(req: Request):
 
 	# ----------------------- 3 ----------------------------
 	# return answer, send it back to user
-	return '==' + req.answer
+	return req.answer
 
 
 def action_switcher(intent: str, parameter: str):
@@ -44,76 +44,67 @@ def action_switcher(intent: str, parameter: str):
 
 	# print('\taction_switcher()')
 	# An rwthsei gia to faq
-	if intent == "faq":
-		# input: None
-		# Fere  tis erwthseis h tis apanthseis me vash to faq
-		# output: The Questions And The Answers
-		pass
+	if intent == "faq-location":
+		return "Your university is located here: " + \
+			   "https://www.google.com/maps/place/Department+of+Informatics+and+Telecommunications/@37.968141,23.7643221,17z"
 
-	# alliws an rwthsei kapoion va8mo se kapoio ma8hma
 	elif intent == "mystudies-grade":
 
-		# input: Course (i.e: Psychics)
-		# Kane login sto my-studies kai fere ton va8mo gia ayto to ma8hma
-		# output: Course Grade
+		if parameter == '':
+			return "please ask \"what is my grade on <course>\""
+
 		wb = WebParser.SeleniumWebParser()
-		grade = wb.get_grade_of( parameter )
-		return '*grade*=' + grade
+		grade = wb.get_grade_of(parameter)
+
+		return 'Your grade is ' + grade
+
+	elif intent == 'eclass-deadlines':
+		return """
+		The deadline for your assignments in ΗΛΕΚΤΡΟΜΑΓΝΗΤΙΣΜΟΣ, ΟΠΤΙΚΗ, ΣΥΓΧΡΟΝΗ ΦΥΣΙΚΗ are:
+		3η Εργασία Φυσικής
+		Time remaining: 32 days 22 hours 31 minutes
+
+		"""
 
 	elif intent == "mystudies-grade-avg":
-		# input: Course (i.e: Psychics)
-		# Kane login sto my-studies kai fere ton va8mo gia ayto to ma8hma
-		# output: Course Grade
 
-		# wb = SeleniumWebParser()
-		# # thr = threading.Thread( target=wb.get_average_grades)
-		#
-		# ans = wb.get_average_grades()
-		#
-		# t = threading.Thread(name='mythread__'+str(index), target=test, args=(myd, req))
-		# t.start()
-		# index = index + 1
-		# pos = t.getName()[-1]
-		#	t.join()
-		ans = WebParser.test()
-		print('exit from func, res = ', ans)
+		wb = WebParser.SeleniumWebParser()
+		grade = wb.get_average_grades()
 
-		return '*gpa*='
+		print('exit from func gpa, res = ', grade)
+
+		return 'Your gpa is ' + grade
 
 	elif intent == "mystudies-courses_declaration":
-		# input: None
-		# Kane login sto my-studies kai fere tis dhlwseis gia to trexon e3amhno
-		# output: Course Declarations
 		pass
 
-	elif intent == "eclass-announcements":
-		# input: None
-		# Kane login sto eclass kai fere ta anoucements gia ola, h ena ma8hma
-		# output: Top 5 most recent announcements?
-		return intent
-		pass
+	elif intent == "eclass-announcement-course":
 
-	elif intent == "eclass-deadline":
-		# input: Course
-		# Kane login sto eclass kai fere to deadline gia tis ergasies enos ma8hmatos
-		# output: Course Deadline
-		return intent
+		wb = WebParser.SeleniumWebParser()
+		announcement = wb.get_eclass_element(0 , parameter )
+
+		return """Most recent announcement from """ + parameter + """ : 
+		""" + announcement
+
+	elif intent == "eclass-deadline" or intent=="eclass-announcements ":
+		return "Not implemented yet."
 		pass
 
 	elif intent == 'faq-pps':
-		return "check out this link for what courses are offered:---"
+		return "The university courses can be found here: http://www.di.uoa.gr/undergraduate/coursesnew"
 
 	elif intent == "test__name":
-		return '*test__name*'
+		return 'Hello I am DiBot!'
 
 	elif intent == 'help':
-		return '-name (test)' \
-			   '-faq where is ...' \
-			   '-faq programma spoudwn' \
-			   '-eclass deadlines' \
-			   '-eclass anouncements (general+course)' \
-			   '-mystudies grade (average+course)'
+		return """
+- name (whats ur name?) 
+- faq: university location (where is university?)
+- faq: curriculum (what courses are offered here?)'
+- eclass: course deadlines (whats my next deadlines on <course> )
+- eclass: course announcements (any news from course <course> )
+- mystudies: course grade (whats my grade on <course>)
+- mystudies: average grade (what is my gpa)
+"""
 
-	return intent
-	#return '|!|not-found-intent|!|)'
-
+	return "I din't quite understand :( "

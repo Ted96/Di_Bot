@@ -4,18 +4,6 @@ from selenium.webdriver.common.keys import Keys
 from other import keys_and_strings
 
 
-def test() -> str :
-
-	# print('\n ++ thread ' , index)
-
-	wb = SeleniumWebParser()
-	answer = wb.get_average_grades()
-
-	# global_dicc[str(index)] = ans
-
-	return answer
-
-
 def convert_to_cap_greek( s : str ) -> str:
 
 	dict_accented_caps = { 'Ό' : 'Ο', 'Ά' : 'Α', 'Ί' : 'Ι', 'Έ' : 'Ε', 'Ύ' : 'Υ', 'Ή' : 'Η', 'Ώ' : 'Ω'}
@@ -23,9 +11,9 @@ def convert_to_cap_greek( s : str ) -> str:
 	res = s.upper()
 
 	for orig, new in dict_accented_caps.items():
-		print(orig, new)
 		res = res.replace(orig , new)
 
+	#print(s + ' -->\n' + res)
 	return res
 
 
@@ -88,7 +76,6 @@ class SeleniumWebParser:
 			course: str = td_columns[0]
 			course = course[course.find('- ') + 2:  course.rfind('(')]
 
-			# string compare -->  check if course ==  {:course_name}
 			grade: str = td_columns[1]
 			grade = grade[grade.find('(') + 1:   grade.find(')')]
 
@@ -130,13 +117,14 @@ class SeleniumWebParser:
 			course: str = td_columns[0]
 			course = course[course.find('- ') + 2:  course.rfind('(')]
 
-			# string compare -->  check if this course ==  {:param_target_course}
+			# string comparison: check if this course ==  {:param_target_course}
 			if param_target_course.upper() in convert_to_cap_greek(course):
 				grade = td_columns[1]
 				grade = grade[grade.find('(') + 1:   grade.find(')')]
 				print("\t__WB__ //mystudies  found : ", param_target_course, '\t= ', grade)
 				break
 
+		self.driver.close()
 		return grade
 
 	def get_eclass_element(self, type_element, param_target_course: str = '') -> str:
@@ -152,20 +140,40 @@ class SeleniumWebParser:
 		#  (string comparison) click on the course with name == [ most similar to the string parameter {:param_target_course}  ]
 		# https://www.datacamp.com/community/tutorials/fuzzy-string-python
 		for c in webelem_courses:
-			if param_target_course.upper() in convert_to_cap_greek(c.text):
+			if convert_to_cap_greek(param_target_course) in convert_to_cap_greek(c.text):
 				c.click()
 
 		w_side_categories = self.driver.find_elements_by_class_name('list-group-item')
+		if w_side_categories is None:
+			print("!course: |"+ param_target_course+"|  no side category=", type_element)
+			self.driver.close()
+			return 'not-found'
+
+		result : str
 		# indexes :::       0=anakoinwseis   1=ergasies   2=ergasies      5=plhrofories
 		w_side_categories[type_element].click()
+		self.driver.implicitly_wait(0.7)
 
-		return 'gg'
+		if type_element == 0:
+			#latest anouncement
+			elem = self.driver.find_elements_by_xpath("//*[@id=\"ann_table3\"]/tbody/tr[1]/td[1]/div")
+			announcement : str = elem[0].text
+			elem = self.driver.find_elements_by_xpath("//*[@id=\"ann_table3\"]/tbody/tr[1]/td[2]")
+			date_of_announcement =elem[0].text
+			result = date_of_announcement + " :\n " + announcement.replace('\n' , '  ')
+
+		if type_element == 1:
+			#latest deadline
+			pass
+
+		self.driver.close()
+		return result
 
 
 if __name__ == "__main__":
 
 	wb = SeleniumWebParser()
 
-	wb.get_eclass_element( 0 , 'ΕΙΣΑΓΩΓΗ ΣΤΟΝ ΠΡΟΓΡΑΜΜΑΤΙΣΜΟ' )
-	print("\n\n", wb.get_average_grades(), "/10")   # ok
-# print(wb.get_grade_of('Εισαγωγη στον Προγραμματισμο')) # ok  <greeklish
+	test = wb.get_eclass_element( 0 , 'Εισαγωγή στον Προγραμματισμό' )
+	print("=" + test)
+	#print("\n\n", wb.get_average_grades(), "/10")   # ok
